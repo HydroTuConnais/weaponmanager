@@ -12,6 +12,7 @@ export async function GET() {
             email: true,
           },
         },
+        weaponType: true,
       },
     });
     return NextResponse.json(weapons);
@@ -30,10 +31,13 @@ export async function POST(request: Request) {
       data: {
         serialNumber,
         name,
-        type,
+        weaponTypeId: type,
         description,
         status: 'AVAILABLE',
         ammunition: ammunition || 0,
+      },
+      include: {
+        weaponType: true,
       },
     });
 

@@ -13,8 +13,8 @@ export const logActionTranslations: Record<string, string> = {
 export const weaponStatusTranslations: Record<string, string> = {
   AVAILABLE: 'Disponible',
   ASSIGNED: 'Assignée',
-  MAINTENANCE: 'En maintenance',
-  RETIRED: 'Retirée',
+  MAINTENANCE: 'Conteneur',
+  RETIRED: 'Vendu',
 };
 
 // Fonction pour traduire une action de log

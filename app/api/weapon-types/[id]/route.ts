@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
-// PATCH /api/users/[id] - Update user role
+// PATCH /api/weapon-types/[id] - Update weapon type
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,37 +19,25 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { role, name } = body;
+    const { name, image, category } = body;
 
-    if (role && !['USER', 'ADMIN'].includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
-    }
-
-    const user = await prisma.user.update({
+    const weaponType = await prisma.weaponType.update({
       where: { id: id },
       data: {
-        ...(role && { role }),
-        ...(name !== undefined && { name }),
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        image: true,
-        role: true,
-        createdAt: true,
-        weapons: true,
+        ...(name && { name }),
+        ...(image !== undefined && { image: image || '' }),
+        ...(category !== undefined && { category }),
       },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json(weaponType);
   } catch (error) {
-    console.error('Error updating user:', error);
+    console.error('Error updating weapon type:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// DELETE /api/users/[id] - Delete user
+// DELETE /api/weapon-types/[id] - Delete weapon type
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -64,30 +52,25 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Prevent self-deletion
-    if (session.user.id === id) {
+    // Check if any weapons use this type
+    const weaponsCount = await prisma.weapon.count({
+      where: { weaponTypeId: id },
+    });
+
+    if (weaponsCount > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete your own account' },
+        { error: `Impossible de supprimer: ${weaponsCount} arme(s) utilisent ce type` },
         { status: 400 }
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: id },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Delete user (cascade will handle related records)
-    await prisma.user.delete({
+    await prisma.weaponType.delete({
       where: { id: id },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    console.error('Error deleting weapon type:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -70,11 +70,22 @@ model Verification {
   @@unique([identifier, value])
 }
 
+model WeaponType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  image       String   // Chemin vers l'image
+  category    String?  // Catégorie (Fusil d'assaut, Pistolet, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  weapons     Weapon[]
+}
+
 model Weapon {
   id              String      @id @default(cuid())
   serialNumber    String      @unique
   name            String
-  type            String
+  weaponTypeId    String
   description     String?
   status          WeaponStatus @default(AVAILABLE)
   ammunition      Int         @default(0)
@@ -82,6 +93,7 @@ model Weapon {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  weaponType      WeaponType  @relation(fields: [weaponTypeId], references: [id])
   assignedTo      User?       @relation(fields: [assignedToId], references: [id])
   logs            WeaponLog[]
 }

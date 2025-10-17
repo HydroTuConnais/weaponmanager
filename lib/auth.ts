@@ -25,6 +25,7 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET as string,
   baseURL: process.env.BETTER_AUTH_URL as string,
   trustedOrigins: [
+    "http://localhost:3000",
     "https://gdg9gqq3-3000.uks1.devtunnels.ms",
   ],
 });

@@ -30,6 +30,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { translateLogAction } from '@/lib/translations';
+import type { DateRange } from 'react-day-picker';
 
 interface Log {
   id: string;
@@ -62,11 +63,18 @@ export default function AdminLogsPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     if ((session?.user as any)?.role === 'ADMIN') {
       fetchLogs();
+
+      // Auto-refresh every 10 seconds
+      const interval = setInterval(() => {
+        fetchLogs();
+      }, 10000);
+
+      return () => clearInterval(interval);
     }
   }, [session]);
 
@@ -133,13 +141,13 @@ export default function AdminLogsPage() {
   };
 
   const addDateRangeFilter = () => {
-    if (dateRange.from) {
+    if (dateRange?.from) {
       addFilter(
         'dateRange',
         dateRange.from.toISOString(),
         dateRange.to?.toISOString() || undefined
       );
-      setDateRange({});
+      setDateRange(undefined);
     }
   };
 
@@ -290,11 +298,11 @@ export default function AdminLogsPage() {
                     variant="outline"
                     size="sm"
                     className={`min-w-[240px] justify-start text-left font-normal ${
-                      !dateRange.from && 'text-muted-foreground'
+                      !dateRange?.from && 'text-muted-foreground'
                     }`}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
+                    {dateRange?.from ? (
                       dateRange.to ? (
                         <>
                           {format(dateRange.from, 'dd MMM', { locale: fr })} -{' '}
@@ -323,14 +331,14 @@ export default function AdminLogsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setDateRange({})}
+                      onClick={() => setDateRange(undefined)}
                     >
                       Effacer
                     </Button>
                     <Button
                       size="sm"
                       onClick={addDateRangeFilter}
-                      disabled={!dateRange.from}
+                      disabled={!dateRange?.from}
                     >
                       Appliquer
                     </Button>

@@ -65,6 +65,13 @@ export default function AdminUsersPage() {
   useEffect(() => {
     if ((session?.user as any)?.role === 'ADMIN') {
       fetchUsers();
+
+      // Auto-refresh every 10 seconds
+      const interval = setInterval(() => {
+        fetchUsers();
+      }, 10000);
+
+      return () => clearInterval(interval);
     }
   }, [session]);
 
@@ -194,7 +201,7 @@ export default function AdminUsersPage() {
     return role === 'ADMIN' ? 'Administrateur' : 'Utilisateur';
   };
 
-  const getWeaponStatusVariant = (status: string) => {
+  const getWeaponStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
       case 'AVAILABLE':
         return 'default';
@@ -207,6 +214,13 @@ export default function AdminUsersPage() {
       default:
         return 'secondary';
     }
+  };
+
+  const getWeaponStatusClassName = (status: string) => {
+    if (status === 'MAINTENANCE') {
+      return 'bg-[#800020] text-white border-[#800020] hover:bg-[#6b001a]';
+    }
+    return '';
   };
 
   if (!session?.user || (session.user as any).role !== 'ADMIN') {
@@ -387,7 +401,10 @@ export default function AdminUsersPage() {
                               onValueChange={(value) => handleChangeWeaponStatus(weapon.id, value)}
                             >
                               <SelectTrigger className="w-[140px] h-8">
-                                <Badge variant={getWeaponStatusVariant(weapon.status)}>
+                                <Badge
+                                  variant={getWeaponStatusVariant(weapon.status)}
+                                  className={getWeaponStatusClassName(weapon.status)}
+                                >
                                   {translateWeaponStatus(weapon.status)}
                                 </Badge>
                               </SelectTrigger>

@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function makeAdmin() {
-  const userId = '6mxRgF3soWSmhrp5PGaUl4av7F8zCVTr';
+  const userId = 'NDGK2PfkuwhGsuvN9bigOV8ci3sRxD5c';
 
   try {
     const user = await prisma.user.update({

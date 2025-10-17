@@ -45,7 +45,13 @@ interface Weapon {
   id: string;
   serialNumber: string;
   name: string;
-  type: string;
+  weaponTypeId: string;
+  weaponType: {
+    id: string;
+    name: string;
+    image: string;
+    category?: string;
+  };
   description?: string;
   status: 'AVAILABLE' | 'ASSIGNED' | 'MAINTENANCE' | 'RETIRED';
   ammunition: number;
@@ -56,9 +62,17 @@ interface Weapon {
   };
 }
 
+interface WeaponType {
+  id: string;
+  name: string;
+  image: string;
+  category?: string;
+}
+
 export default function AdminWeaponsPage() {
   const { data: session } = useSession();
   const [weapons, setWeapons] = useState<Weapon[]>([]);
+  const [weaponTypes, setWeaponTypes] = useState<WeaponType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -76,6 +90,15 @@ export default function AdminWeaponsPage() {
   useEffect(() => {
     if ((session?.user as any)?.role === 'ADMIN') {
       fetchWeapons();
+      fetchWeaponTypes();
+
+      // Auto-refresh every 10 seconds
+      const interval = setInterval(() => {
+        fetchWeapons();
+        fetchWeaponTypes();
+      }, 10000);
+
+      return () => clearInterval(interval);
     }
   }, [session]);
 
@@ -88,6 +111,16 @@ export default function AdminWeaponsPage() {
       console.error('Error fetching weapons:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWeaponTypes = async () => {
+    try {
+      const response = await fetch('/api/weapon-types');
+      const data = await response.json();
+      setWeaponTypes(data);
+    } catch (error) {
+      console.error('Error fetching weapon types:', error);
     }
   };
 
@@ -112,7 +145,7 @@ export default function AdminWeaponsPage() {
     setFormData({
       serialNumber: weapon.serialNumber,
       name: weapon.name,
-      type: weapon.type,
+      type: weapon.weaponTypeId,
       description: weapon.description || '',
       status: weapon.status,
       ammunition: weapon.ammunition || 0,
@@ -166,7 +199,7 @@ export default function AdminWeaponsPage() {
     }
   };
 
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
       case 'AVAILABLE':
         return 'default';
@@ -179,6 +212,13 @@ export default function AdminWeaponsPage() {
       default:
         return 'default';
     }
+  };
+
+  const getStatusClassName = (status: string) => {
+    if (status === 'MAINTENANCE') {
+      return 'bg-[#800020] text-white border-[#800020] hover:bg-[#6b001a]';
+    }
+    return '';
   };
 
   if (!session?.user || (session.user as any).role !== 'ADMIN') {
@@ -230,9 +270,22 @@ export default function AdminWeaponsPage() {
                 ) : (
                   weapons.map((weapon) => (
                     <TableRow key={weapon.id}>
+                      <TableCell>
+                        {weapon.weaponType.image && (
+                          <div className="relative w-16 h-16 rounded-md overflow-hidden bg-muted">
+                            <Image
+                              src={weapon.weaponType.image}
+                              alt={weapon.weaponType.name}
+                              fill
+                              className="object-cover"
+                              sizes="64px"
+                            />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{weapon.name}</TableCell>
                       <TableCell className="font-mono text-sm">{weapon.serialNumber}</TableCell>
-                      <TableCell>{weapon.type}</TableCell>
+                      <TableCell>{weapon.weaponType.name}</TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
                           {weapon.ammunition ?? 0} balles
@@ -246,7 +299,10 @@ export default function AdminWeaponsPage() {
                           }
                         >
                           <SelectTrigger className="w-[140px]">
-                            <Badge variant={getStatusVariant(weapon.status)}>
+                            <Badge
+                              variant={getStatusVariant(weapon.status)}
+                              className={getStatusClassName(weapon.status)}
+                            >
                               {translateWeaponStatus(weapon.status)}
                             </Badge>
                           </SelectTrigger>
@@ -344,12 +400,22 @@ export default function AdminWeaponsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Type</Label>
-                  <Input
-                    id="type"
-                    required
+                  <Select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, type: value })}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {weaponTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
@@ -417,12 +483,22 @@ export default function AdminWeaponsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-type">Type</Label>
-                  <Input
-                    id="edit-type"
-                    required
+                  <Select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, type: value })}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {weaponTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-description">Description</Label>

@@ -6,8 +6,9 @@ import { headers } from 'next/headers';
 // PATCH /api/weapons/[id] - Update weapon
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -22,7 +23,7 @@ export async function PATCH(
 
     // Get current weapon state to check if it was assigned
     const currentWeapon = await prisma.weapon.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         assignedTo: true,
       },
@@ -32,11 +33,11 @@ export async function PATCH(
     const shouldUnassign = status === 'AVAILABLE' && currentWeapon?.assignedToId;
 
     const weapon = await prisma.weapon.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(serialNumber && { serialNumber }),
         ...(name && { name }),
-        ...(type && { type }),
+        ...(type && { weaponTypeId: type }),
         ...(description !== undefined && { description }),
         ...(status && { status }),
         ...(ammunition !== undefined && { ammunition }),
@@ -55,6 +56,7 @@ export async function PATCH(
             email: true,
           },
         },
+        weaponType: true,
       },
     });
 
@@ -89,8 +91,9 @@ export async function PATCH(
 // DELETE /api/weapons/[id] - Delete weapon
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -101,7 +104,7 @@ export async function DELETE(
     }
 
     const weapon = await prisma.weapon.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!weapon) {
@@ -120,7 +123,7 @@ export async function DELETE(
 
     // Delete weapon (logs will be cascade deleted)
     await prisma.weapon.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

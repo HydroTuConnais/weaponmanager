@@ -12,7 +12,12 @@ interface Weapon {
   id: string;
   serialNumber: string;
   name: string;
-  type: string;
+  weaponType: {
+    id: string;
+    name: string;
+    image: string;
+    category?: string;
+  };
   description?: string;
   status: 'AVAILABLE' | 'ASSIGNED' | 'MAINTENANCE' | 'RETIRED';
   ammunition?: number;
@@ -36,13 +41,13 @@ export function WeaponCard({ weapon, isDraggable = false }: WeaponCardProps) {
   };
 
   const statusConfig = {
-    AVAILABLE: { variant: 'default' as const, icon: Shield },
-    ASSIGNED: { variant: 'secondary' as const, icon: Shield },
-    MAINTENANCE: { variant: 'outline' as const, icon: Wrench },
-    RETIRED: { variant: 'outline' as const, icon: AlertCircle },
+    AVAILABLE: { variant: 'default' as const, icon: Shield, className: '' },
+    ASSIGNED: { variant: 'secondary' as const, icon: Shield, className: '' },
+    MAINTENANCE: { variant: 'outline' as const, icon: Wrench, className: 'bg-[#800020] text-white border-[#800020] hover:bg-[#6b001a]' },
+    RETIRED: { variant: 'outline' as const, icon: AlertCircle, className: '' },
   };
 
-  const { variant, icon: StatusIcon } = statusConfig[weapon.status];
+  const { variant, icon: StatusIcon, className } = statusConfig[weapon.status];
 
   return (
     <Card
@@ -52,11 +57,26 @@ export function WeaponCard({ weapon, isDraggable = false }: WeaponCardProps) {
     >
       {/* Badge du statut en haut à droite */}
       <div className="absolute top-3 right-3 z-10">
-        <Badge variant={variant}>{translateWeaponStatus(weapon.status)}</Badge>
+        <Badge variant={variant} className={className}>
+          {translateWeaponStatus(weapon.status)}
+        </Badge>
       </div>
 
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
+          {/* Image de l'arme */}
+          {weapon.weaponType.image && (
+            <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-muted">
+              <Image
+                src={weapon.weaponType.image}
+                alt={weapon.weaponType.name}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            </div>
+          )}
+
           <div className="flex-1 space-y-2 min-w-0 pr-20">
             <div className="flex items-center gap-2">
               <StatusIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -64,7 +84,7 @@ export function WeaponCard({ weapon, isDraggable = false }: WeaponCardProps) {
             </div>
             <div className="space-y-1 text-sm text-muted-foreground">
               <p>Numéro de Série: {weapon.serialNumber}</p>
-              <p>Type: {weapon.type}</p>
+              <p>Type: {weapon.weaponType.name}</p>
               <p>Munitions: {weapon.ammunition ?? 0} balles</p>
               {weapon.description && (
                 <p className="text-xs line-clamp-2">{weapon.description}</p>

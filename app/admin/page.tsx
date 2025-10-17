@@ -2,7 +2,7 @@
 
 import { useSession } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
-import { Users, Shield, Activity, ChevronRight } from 'lucide-react';
+import { Users, Shield, Activity, ChevronRight, Grid3x3 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,13 @@ export default function AdminPage() {
   useEffect(() => {
     if ((session?.user as any)?.role === 'ADMIN') {
       fetchStats();
+
+      // Auto-refresh every 10 seconds
+      const interval = setInterval(() => {
+        fetchStats();
+      }, 10000);
+
+      return () => clearInterval(interval);
     }
   }, [session]);
 
@@ -122,7 +129,7 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="group hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <Link href="/admin/users" className="block">
@@ -147,6 +154,22 @@ export default function AdminPage() {
                     <h3 className="font-semibold">Gestion des armes</h3>
                     <p className="text-sm text-muted-foreground">
                       Voir et gérer toutes les armes
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <Link href="/admin/weapon-types" className="block">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">Types d'armes</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Gérer les types d'armes
                     </p>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
