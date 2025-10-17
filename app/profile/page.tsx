@@ -17,7 +17,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PrismaClient, Weapon, WeaponLog } from '@prisma/client';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -30,7 +29,6 @@ export default function ProfilePage() {
   const [ammunitionCount, setAmmunitionCount] = useState<number>(0);
 
   useEffect(() => {
-    // Fetch weapons from API
     fetchWeapons();
   }, []);
 
