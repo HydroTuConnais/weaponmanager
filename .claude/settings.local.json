@@ -18,7 +18,14 @@
       "Bash(git merge:*)",
       "Bash(git push:*)",
       "Bash(cat:*)",
-      "Bash(pnpm db:generate:*)"
+      "Bash(pnpm db:generate:*)",
+      "Bash(sqlite3:*)",
+      "Bash(pnpm db:push:*)",
+      "Bash(pnpm add:*)",
+      "Bash(node migrate-data.js:*)",
+      "Bash(pnpm rebuild:*)",
+      "Bash(node extract-sqlite-data.js:*)",
+      "Bash(where sqlite3)"
     ],
     "deny": [],
     "ask": []

@@ -4,6 +4,7 @@ import { useSession } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
 import { Users, MoreVertical, Trash2, Shield, UserCog, Eye, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useDataSync } from '@/lib/hooks/use-data-sync';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import {
@@ -62,19 +63,6 @@ export default function AdminUsersPage() {
   const [newRole, setNewRole] = useState<'USER' | 'ADMIN'>('USER');
   const [editName, setEditName] = useState('');
 
-  useEffect(() => {
-    if ((session?.user as any)?.role === 'ADMIN') {
-      fetchUsers();
-
-      // Auto-refresh every 10 seconds
-      const interval = setInterval(() => {
-        fetchUsers();
-      }, 10000);
-
-      return () => clearInterval(interval);
-    }
-  }, [session]);
-
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/users');
@@ -86,6 +74,20 @@ export default function AdminUsersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if ((session?.user as any)?.role === 'ADMIN') {
+      fetchUsers();
+    }
+  }, [session]);
+
+  // Real-time sync: refresh data when it changes
+  useDataSync({
+    onUsersChange: fetchUsers,
+    onWeaponsChange: fetchUsers, // Also refresh when weapons change (because users have weapons)
+    pollingInterval: 3000, // Check every 3 seconds
+    enabled: (session?.user as any)?.role === 'ADMIN',
+  });
 
   const handleViewDetails = (user: User) => {
     setSelectedUser(user);

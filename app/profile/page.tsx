@@ -5,7 +5,8 @@ import { useWeaponStore } from '@/lib/stores/weapon-store';
 import { WeaponCard } from '@/components/weapon-card';
 import { DndContext, DragEndEvent, DragOverlay, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core';
 import { useEffect, useState } from 'react';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, RefreshCw } from 'lucide-react';
+import { useDataSync } from '@/lib/hooks/use-data-sync';
 import {
   Dialog,
   DialogContent,
@@ -27,17 +28,7 @@ export default function ProfilePage() {
   const [showAmmunitionDialog, setShowAmmunitionDialog] = useState(false);
   const [returningWeapon, setReturningWeapon] = useState<any>(null);
   const [ammunitionCount, setAmmunitionCount] = useState<number>(0);
-
-  useEffect(() => {
-    fetchWeapons();
-  }, []);
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      setMyWeapons(weapons.filter((w) => w.assignedToId === session.user.id));
-      setAvailableWeapons(weapons.filter((w) => w.status === 'AVAILABLE'));
-    }
-  }, [weapons, session]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchWeapons = async () => {
     try {
@@ -47,6 +38,29 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error fetching weapons:', error);
     }
+  };
+
+  useEffect(() => {
+    fetchWeapons();
+  }, []);
+
+  // Real-time sync: refresh weapons when data changes
+  useDataSync({
+    onWeaponsChange: fetchWeapons,
+    pollingInterval: 3000, // Check every 3 seconds
+  });
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      setMyWeapons(weapons.filter((w) => w.assignedToId === session.user.id));
+      setAvailableWeapons(weapons.filter((w) => w.status === 'AVAILABLE'));
+    }
+  }, [weapons, session]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchWeapons();
+    setRefreshing(false);
   };
 
   const handleDragStart = (event: any) => {
@@ -124,25 +138,35 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center gap-4">
-            {session.user.image ? (
-              <img
-                src={session.user.image}
-                alt={session.user.name || 'User'}
-                className="w-16 h-16 rounded-full"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center">
-                <UserIcon size={32} className="text-gray-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {session.user.image ? (
+                <img
+                  src={session.user.image}
+                  alt={session.user.name || 'User'}
+                  className="w-16 h-16 rounded-full"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center">
+                  <UserIcon size={32} className="text-gray-600" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-2xl font-bold">{session.user.name || 'User'}</h1>
+                <p className="text-gray-600">{session.user.email}</p>
+                <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
+                  {(session.user as any).role || 'USER'}
+                </span>
               </div>
-            )}
-            <div>
-              <h1 className="text-2xl font-bold">{session.user.name || 'User'}</h1>
-              <p className="text-gray-600">{session.user.email}</p>
-              <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
-                {(session.user as any).role || 'USER'}
-              </span>
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
 

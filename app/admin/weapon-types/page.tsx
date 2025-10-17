@@ -4,6 +4,7 @@ import { useSession } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit, MoreVertical, Grid3x3, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useDataSync } from '@/lib/hooks/use-data-sync';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Image from 'next/image';
@@ -54,19 +55,6 @@ export default function AdminWeaponTypesPage() {
     category: '',
   });
 
-  useEffect(() => {
-    if ((session?.user as any)?.role === 'ADMIN') {
-      fetchWeaponTypes();
-
-      // Auto-refresh every 10 seconds
-      const interval = setInterval(() => {
-        fetchWeaponTypes();
-      }, 10000);
-
-      return () => clearInterval(interval);
-    }
-  }, [session]);
-
   const fetchWeaponTypes = async () => {
     try {
       const response = await fetch('/api/weapon-types');
@@ -78,6 +66,19 @@ export default function AdminWeaponTypesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if ((session?.user as any)?.role === 'ADMIN') {
+      fetchWeaponTypes();
+    }
+  }, [session]);
+
+  // Real-time sync: refresh data when it changes
+  useDataSync({
+    onWeaponTypesChange: fetchWeaponTypes,
+    pollingInterval: 3000, // Check every 3 seconds
+    enabled: (session?.user as any)?.role === 'ADMIN',
+  });
 
   const handleRefresh = async () => {
     setRefreshing(true);
