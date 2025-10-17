@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
+import { DiscordRoleGuard } from "@/components/discord-role-guard";
 
 export const metadata: Metadata = {
   title: "Weapon Management System",
@@ -16,7 +17,7 @@ export default function RootLayout({
     <html lang="fr">
       <body>
         <Navbar />
-        {children}
+        <DiscordRoleGuard>{children}</DiscordRoleGuard>
       </body>
     </html>
   );
