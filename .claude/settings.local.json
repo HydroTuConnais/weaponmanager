@@ -16,7 +16,9 @@
       "Bash(git checkout:*)",
       "Bash(git pull:*)",
       "Bash(git merge:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm db:generate:*)"
     ],
     "deny": [],
     "ask": []
