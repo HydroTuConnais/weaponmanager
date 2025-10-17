@@ -268,7 +268,6 @@ export default function AdminWeaponsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Image</TableHead>
                   <TableHead>Nom</TableHead>
                   <TableHead>Numéro de Série</TableHead>
                   <TableHead>Type</TableHead>
@@ -281,26 +280,13 @@ export default function AdminWeaponsPage() {
               <TableBody>
                 {weapons.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       Aucune arme trouvée
                     </TableCell>
                   </TableRow>
                 ) : (
                   weapons.map((weapon) => (
                     <TableRow key={weapon.id}>
-                      <TableCell>
-                        {weapon.weaponType.image && (
-                          <div className="relative w-16 h-16 rounded-md overflow-hidden bg-muted">
-                            <Image
-                              src={weapon.weaponType.image}
-                              alt={weapon.weaponType.name}
-                              fill
-                              className="object-cover"
-                              sizes="64px"
-                            />
-                          </div>
-                        )}
-                      </TableCell>
                       <TableCell className="font-medium">{weapon.name}</TableCell>
                       <TableCell className="font-mono text-sm">{weapon.serialNumber}</TableCell>
                       <TableCell>{weapon.weaponType.name}</TableCell>

@@ -191,7 +191,6 @@ export default function AdminWeaponTypesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Image</TableHead>
                   <TableHead>Nom</TableHead>
                   <TableHead>Catégorie</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -200,26 +199,13 @@ export default function AdminWeaponTypesPage() {
               <TableBody>
                 {weaponTypes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
                       Aucun type d'arme trouvé
                     </TableCell>
                   </TableRow>
                 ) : (
                   weaponTypes.map((type) => (
                     <TableRow key={type.id}>
-                      <TableCell>
-                        {type.image && (
-                          <div className="relative w-16 h-16 rounded-md overflow-hidden bg-muted">
-                            <Image
-                              src={type.image}
-                              alt={type.name}
-                              fill
-                              className="object-cover"
-                              sizes="64px"
-                            />
-                          </div>
-                        )}
-                      </TableCell>
                       <TableCell className="font-medium">{type.name}</TableCell>
                       <TableCell>{type.category || '-'}</TableCell>
                       <TableCell className="text-right">
