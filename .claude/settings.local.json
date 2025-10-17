@@ -10,7 +10,13 @@
       "Bash(npx shadcn@latest init:*)",
       "Bash(npx shadcn@latest add button card input table badge separator avatar dropdown-menu)",
       "Bash(npx shadcn@latest add calendar popover)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: configure Prisma for Vercel deployment\n\n- Remove custom output path from Prisma schema to use default location\n- Add .npmrc to enable Prisma build scripts in pnpm\n- Update Prisma client import to use @prisma/client\n- Add dev.db to .gitignore\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
