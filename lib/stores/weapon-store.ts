@@ -4,7 +4,12 @@ export interface Weapon {
   id: string;
   serialNumber: string;
   name: string;
-  type: string;
+  weaponType: {
+    id: string;
+    name: string;
+    image: string;
+    category?: string;
+  };
   description?: string;
   status: 'AVAILABLE' | 'ASSIGNED' | 'MAINTENANCE' | 'RETIRED';
   assignedToId?: string;
