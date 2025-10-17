@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    // Récupérer le compte Discord de l'utilisateur
+    // Récupérer le compte Discord de l'utilisateur avec son token
     const account = await prisma.account.findFirst({
       where: {
         userId: userId,
@@ -18,30 +18,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!account || !account.accountId) {
+    if (!account || !account.accessToken) {
       return NextResponse.json(
-        { error: 'No Discord account found', hasRole: false },
+        { error: 'No Discord account or access token found', hasRole: false },
         { status: 404 }
       );
     }
 
-    const discordUserId = account.accountId;
     const guildId = process.env.DISCORD_GUILD_ID;
     const requiredRoleId = process.env.DISCORD_REQUIRED_ROLE_ID;
-    const botToken = process.env.DISCORD_BOT_TOKEN;
 
-    // Si pas configuré, autoriser par défaut
-    if (!guildId || !requiredRoleId || !botToken) {
+    // Si pas configuré, autoriser par défaut (mode développement)
+    if (!guildId || !requiredRoleId) {
       console.warn('[Discord Role Check] Not configured, allowing by default');
       return NextResponse.json({ hasRole: true });
     }
 
-    // Vérifier le rôle
+    // Vérifier le rôle avec le token OAuth de l'utilisateur
     const hasRequiredRole = await checkDiscordRole(
-      discordUserId,
+      account.accessToken,
       guildId,
-      requiredRoleId,
-      botToken
+      requiredRoleId
     );
 
     if (!hasRequiredRole) {

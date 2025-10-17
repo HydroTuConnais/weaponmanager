@@ -1,25 +1,25 @@
 /**
  * Vérifie si un utilisateur Discord a un rôle spécifique sur un serveur
+ * Utilise le token OAuth de l'utilisateur au lieu d'un bot
  */
 export async function checkDiscordRole(
-  discordUserId: string,
+  accessToken: string,
   guildId: string,
-  requiredRoleId: string,
-  botToken: string
+  requiredRoleId: string
 ): Promise<boolean> {
   try {
-    // Récupérer les informations du membre sur le serveur
+    // Récupérer les serveurs de l'utilisateur avec ses rôles
     const response = await fetch(
-      `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}`,
+      `https://discord.com/api/v10/users/@me/guilds/${guildId}/member`,
       {
         headers: {
-          Authorization: `Bot ${botToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
 
     if (!response.ok) {
-      console.error('[Discord] Failed to fetch member:', response.status, response.statusText);
+      console.error('[Discord] Failed to fetch guild member:', response.status, response.statusText);
       return false;
     }
 
@@ -29,10 +29,10 @@ export async function checkDiscordRole(
     const hasRole = member.roles?.includes(requiredRoleId);
 
     console.log('[Discord] Role check:', {
-      userId: discordUserId,
       hasRole,
       userRoles: member.roles,
       requiredRole: requiredRoleId,
+      guildId,
     });
 
     return hasRole;
