@@ -2,7 +2,7 @@
 
 import { useSession } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit, MoreVertical, Grid3x3, X } from 'lucide-react';
+import { Plus, Trash2, Edit, MoreVertical, Grid3x3, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -43,6 +43,7 @@ export default function AdminWeaponTypesPage() {
   const { data: session } = useSession();
   const [weaponTypes, setWeaponTypes] = useState<WeaponType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -76,6 +77,12 @@ export default function AdminWeaponTypesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchWeaponTypes();
+    setRefreshing(false);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -160,10 +167,20 @@ export default function AdminWeaponTypesPage() {
             <Grid3x3 className="h-6 w-6" />
             <h1 className="text-3xl font-bold">Types d'Armes</h1>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouveau Type
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau Type
+            </Button>
+          </div>
         </div>
 
         <Card>

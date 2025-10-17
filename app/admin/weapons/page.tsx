@@ -2,7 +2,7 @@
 
 import { useSession } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit, MoreVertical, Shield } from 'lucide-react';
+import { Plus, Trash2, Edit, MoreVertical, Shield, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -74,6 +74,7 @@ export default function AdminWeaponsPage() {
   const [weapons, setWeapons] = useState<Weapon[]>([]);
   const [weaponTypes, setWeaponTypes] = useState<WeaponType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -122,6 +123,12 @@ export default function AdminWeaponsPage() {
     } catch (error) {
       console.error('Error fetching weapon types:', error);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchWeapons(), fetchWeaponTypes()]);
+    setRefreshing(false);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -237,10 +244,20 @@ export default function AdminWeaponsPage() {
             <Shield className="h-6 w-6" />
             <h1 className="text-3xl font-bold">Gestion des Armes</h1>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle Arme
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle Arme
+            </Button>
+          </div>
         </div>
 
         <Card>
