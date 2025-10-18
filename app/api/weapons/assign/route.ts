@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { triggerWeaponUpdate } from '@/lib/pusher-server';
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
         notes: `Weapon assigned to user`,
       },
     });
+
+    // Trigger Pusher event pour mise à jour temps réel
+    await triggerWeaponUpdate('WEAPON_UPDATED', { id: weapon.id });
 
     return NextResponse.json(weapon);
   } catch (error) {
