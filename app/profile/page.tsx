@@ -4,7 +4,7 @@ import { useSession } from '@/lib/auth-client';
 import { useWeaponStore } from '@/lib/stores/weapon-store';
 import { WeaponCard } from '@/components/weapon-card';
 import { DndContext, DragEndEvent, DragOverlay, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core';
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { User as UserIcon, RefreshCw } from 'lucide-react';
 import { usePusher } from '@/lib/hooks/use-pusher';
 import { PusherStatus } from '@/components/pusher-status';
@@ -19,49 +19,36 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useWeapons, useAssignWeapon, useReturnWeapon } from '@/lib/hooks/use-queries';
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
-  const { weapons, assignWeapon, returnWeapon } = useWeaponStore();
+  const { data: session, isPending } = useSession();
+
+  // TanStack Query hooks
+  const { data: weapons = [], refetch: refetchWeapons } = useWeapons();
+  const assignWeaponMutation = useAssignWeapon();
+  const returnWeaponMutation = useReturnWeapon();
+
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [myWeapons, setMyWeapons] = useState<any[]>([]);
-  const [availableWeapons, setAvailableWeapons] = useState<any[]>([]);
   const [showAmmunitionDialog, setShowAmmunitionDialog] = useState(false);
   const [returningWeapon, setReturningWeapon] = useState<any>(null);
   const [ammunitionCount, setAmmunitionCount] = useState<number>(0);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchWeapons = async () => {
-    try {
-      const response = await fetch('/api/weapons');
-      const data = await response.json();
-      useWeaponStore.getState().setWeapons(data);
-    } catch (error) {
-      console.error('Error fetching weapons:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchWeapons();
-  }, []);
-
-  // Pusher real-time updates - 0 polling, mise à jour instantanée !
+  // Pusher real-time updates (uniquement si authentifié)
   usePusher({
-    onWeaponsChange: fetchWeapons,
+    onWeaponsChange: refetchWeapons,
+    isAuthenticated: !!session?.user,
   });
 
-  useEffect(() => {
-    if (session?.user?.id) {
-      setMyWeapons(weapons.filter((w) => w.assignedToId === session.user.id));
-      setAvailableWeapons(weapons.filter((w) => w.status === 'AVAILABLE'));
-    }
-  }, [weapons, session]);
+  // Compute my weapons and available weapons using useMemo to avoid infinite loops
+  const myWeapons = useMemo(() => {
+    if (!session?.user?.id) return [];
+    return weapons.filter((w) => w.assignedTo?.id === session.user.id);
+  }, [weapons, session?.user?.id]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchWeapons();
-    setRefreshing(false);
-  };
+  const availableWeapons = useMemo(() => {
+    return weapons.filter((w) => w.status === 'AVAILABLE');
+  }, [weapons]);
 
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id);
@@ -80,20 +67,14 @@ export default function ProfilePage() {
 
     // If dropped on "my weapons" area and weapon is available
     if (over.id === 'my-weapons' && weapon.status === 'AVAILABLE') {
-      try {
-        await fetch('/api/weapons/assign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weaponId, userId: session.user.id }),
-        });
-        assignWeapon(weaponId, session.user.id);
-      } catch (error) {
-        console.error('Error assigning weapon:', error);
-      }
+      await assignWeaponMutation.mutateAsync({
+        weaponId,
+        userId: session.user.id,
+      });
     }
 
     // If dropped on "available weapons" area and weapon is assigned to user
-    if (over.id === 'available-weapons' && weapon.assignedToId === session.user.id) {
+    if (over.id === 'available-weapons' && weapon.assignedTo?.id === session.user.id) {
       // Show ammunition dialog before returning
       setReturningWeapon(weapon);
       setAmmunitionCount(weapon.ammunition || 0);
@@ -102,28 +83,31 @@ export default function ProfilePage() {
   };
 
   const handleConfirmReturn = async () => {
-    if (!returningWeapon) return;
+    if (!returningWeapon || !session?.user?.id) return;
 
-    try {
-      await fetch('/api/weapons/return', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          weaponId: returningWeapon.id,
-          ammunition: ammunitionCount,
-        }),
-      });
-      returnWeapon(returningWeapon.id);
-      setShowAmmunitionDialog(false);
-      setReturningWeapon(null);
-      fetchWeapons(); // Refresh weapons list
-    } catch (error) {
-      console.error('Error returning weapon:', error);
-    }
+    await returnWeaponMutation.mutateAsync({
+      weaponId: returningWeapon.id,
+      userId: session.user.id,
+    });
+    setShowAmmunitionDialog(false);
+    setReturningWeapon(null);
   };
 
   const activeWeapon = activeId ? weapons.find((w) => w.id === activeId) : null;
 
+  // Afficher un loader pendant le chargement de la session
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="text-lg text-gray-600">Chargement de votre profil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Rediriger si pas connecté (après chargement)
   if (!session?.user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -163,10 +147,9 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={handleRefresh}
-              disabled={refreshing}
+              onClick={() => refetchWeapons()}
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </div>

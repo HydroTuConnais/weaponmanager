@@ -35,13 +35,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier le rôle avec le token OAuth de l'utilisateur
-    const hasRequiredRole = await checkDiscordRole(
+    const roleCheck = await checkDiscordRole(
       account.accessToken,
       guildId,
       requiredRoleId
     );
 
-    if (!hasRequiredRole) {
+    // Si le token a expiré, on déconnecte l'utilisateur SANS le supprimer
+    // Il pourra se reconnecter et son compte sera réutilisé
+    if (roleCheck.tokenExpired) {
+      console.log('[Discord Role Check] Token expired, logging out user without deletion');
+
+      // Supprimer uniquement les sessions (déconnexion)
+      await prisma.session.deleteMany({
+        where: { userId },
+      });
+
+      return NextResponse.json(
+        {
+          hasRole: false,
+          tokenExpired: true,
+          message: "Votre session a expiré. Veuillez vous reconnecter.",
+        },
+        { status: 401 } // 401 Unauthorized au lieu de 403 Forbidden
+      );
+    }
+
+    // Si l'utilisateur n'a vraiment pas le rôle (et token valide), on supprime tout
+    if (!roleCheck.hasRole) {
+      console.log('[Discord Role Check] User does not have required role, deleting account');
+
       // Supprimer l'utilisateur si pas le bon rôle
       await prisma.session.deleteMany({
         where: { userId },

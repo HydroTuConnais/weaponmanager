@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { DiscordRoleGuard } from "@/components/discord-role-guard";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 export const metadata: Metadata = {
   title: "Armurerie Harlem",
@@ -19,8 +20,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <Navbar />
-        <DiscordRoleGuard>{children}</DiscordRoleGuard>
+        <QueryProvider>
+          <Navbar />
+          <DiscordRoleGuard>{children}</DiscordRoleGuard>
+        </QueryProvider>
       </body>
     </html>
   );

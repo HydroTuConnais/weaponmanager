@@ -41,34 +41,16 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { translateWeaponStatus } from '@/lib/translations';
-
-interface Weapon {
-  id: string;
-  serialNumber: string;
-  name: string;
-  weaponTypeId: string;
-  weaponType: {
-    id: string;
-    name: string;
-    image: string;
-    category?: string;
-  };
-  description?: string;
-  status: 'AVAILABLE' | 'ASSIGNED' | 'MAINTENANCE' | 'RETIRED';
-  ammunition: number;
-  assignedTo?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
-interface WeaponType {
-  id: string;
-  name: string;
-  image: string;
-  category?: string;
-}
+import {
+  useWeapons,
+  useWeaponTypes,
+  useUsers,
+  useCreateWeapon,
+  useUpdateWeapon,
+  useDeleteWeapon,
+  useAssignWeapon,
+} from '@/lib/hooks/use-queries';
+import type { Weapon } from '@/lib/types';
 
 interface FilterType {
   id: string;
@@ -81,12 +63,19 @@ type SortOrder = 'asc' | 'desc';
 
 export default function AdminWeaponsPage() {
   const { data: session } = useSession();
-  const [weapons, setWeapons] = useState<Weapon[]>([]);
+
+  // TanStack Query hooks - Super propre !
+  const { data: weapons = [], isLoading, refetch: refetchWeapons } = useWeapons();
+  const { data: weaponTypes = [], refetch: refetchWeaponTypes } = useWeaponTypes();
+  const { data: users = [] } = useUsers();
+
+  // Mutations
+  const createWeaponMutation = useCreateWeapon();
+  const updateWeaponMutation = useUpdateWeapon();
+  const deleteWeaponMutation = useDeleteWeapon();
+  const assignWeaponMutation = useAssignWeapon();
+
   const [filteredWeapons, setFilteredWeapons] = useState<Weapon[]>([]);
-  const [weaponTypes, setWeaponTypes] = useState<WeaponType[]>([]);
-  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -106,55 +95,16 @@ export default function AdminWeaponsPage() {
     ammunition: 0,
   });
 
-  const fetchWeapons = async () => {
-    try {
-      const response = await fetch('/api/weapons');
-      const data = await response.json();
-      setWeapons(data);
-    } catch (error) {
-      console.error('Error fetching weapons:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchWeaponTypes = async () => {
-    try {
-      const response = await fetch('/api/weapon-types');
-      const data = await response.json();
-      setWeaponTypes(data);
-    } catch (error) {
-      console.error('Error fetching weapon types:', error);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/users');
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  useEffect(() => {
-    if ((session?.user as any)?.role === 'ADMIN') {
-      fetchWeapons();
-      fetchWeaponTypes();
-      fetchUsers();
-    }
-  }, [session]);
-
   useEffect(() => {
     applyFiltersAndSort();
   }, [weapons, filters, searchTerm, sortField, sortOrder]);
 
-  // Pusher real-time updates - 0 polling, mise à jour instantanée !
+  // Pusher real-time updates (uniquement si authentifié et admin)
   usePusher({
-    onWeaponsChange: fetchWeapons,
-    onWeaponTypesChange: fetchWeaponTypes,
+    onWeaponsChange: refetchWeapons,
+    onWeaponTypesChange: refetchWeaponTypes,
     enabled: (session?.user as any)?.role === 'ADMIN',
+    isAuthenticated: !!session?.user,
   });
 
   const applyFiltersAndSort = () => {
@@ -240,25 +190,17 @@ export default function AdminWeaponsPage() {
   };
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([fetchWeapons(), fetchWeaponTypes()]);
-    setRefreshing(false);
+    await Promise.all([refetchWeapons(), refetchWeaponTypes()]);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await fetch('/api/weapons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, userId: session?.user?.id }),
-      });
-      setFormData({ serialNumber: '', name: '', type: '', description: '', status: 'AVAILABLE', ammunition: 0 });
-      setShowCreateDialog(false);
-      fetchWeapons();
-    } catch (error) {
-      console.error('Error creating weapon:', error);
-    }
+    await createWeaponMutation.mutateAsync({
+      ...formData,
+      userId: session?.user?.id
+    });
+    setFormData({ serialNumber: '', name: '', type: '', description: '', status: 'AVAILABLE', ammunition: 0 });
+    setShowCreateDialog(false);
   };
 
   const handleEdit = (weapon: Weapon) => {
@@ -278,33 +220,20 @@ export default function AdminWeaponsPage() {
     e.preventDefault();
     if (!selectedWeapon) return;
 
-    try {
-      await fetch(`/api/weapons/${selectedWeapon.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      setShowEditDialog(false);
-      setSelectedWeapon(null);
-      fetchWeapons();
-    } catch (error) {
-      console.error('Error updating weapon:', error);
-    }
+    await updateWeaponMutation.mutateAsync({
+      id: selectedWeapon.id,
+      data: formData,
+    });
+    setShowEditDialog(false);
+    setSelectedWeapon(null);
   };
 
   const handleDelete = async () => {
     if (!selectedWeapon) return;
 
-    try {
-      await fetch(`/api/weapons/${selectedWeapon.id}`, {
-        method: 'DELETE',
-      });
-      setShowDeleteDialog(false);
-      setSelectedWeapon(null);
-      fetchWeapons();
-    } catch (error) {
-      console.error('Error deleting weapon:', error);
-    }
+    await deleteWeaponMutation.mutateAsync(selectedWeapon.id);
+    setShowDeleteDialog(false);
+    setSelectedWeapon(null);
   };
 
   const handleStatusChange = async (weaponId: string, newStatus: Weapon['status']) => {
@@ -320,37 +249,22 @@ export default function AdminWeaponsPage() {
     }
 
     // Pour les autres statuts, mettre à jour directement
-    try {
-      await fetch(`/api/weapons/${weaponId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      fetchWeapons();
-    } catch (error) {
-      console.error('Error updating weapon status:', error);
-    }
+    await updateWeaponMutation.mutateAsync({
+      id: weaponId,
+      data: { status: newStatus },
+    });
   };
 
   const handleAssignWeapon = async () => {
     if (!selectedWeapon || !selectedUserId) return;
 
-    try {
-      await fetch('/api/weapons/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          weaponId: selectedWeapon.id,
-          userId: selectedUserId
-        }),
-      });
-      setShowAssignDialog(false);
-      setSelectedWeapon(null);
-      setSelectedUserId('');
-      fetchWeapons();
-    } catch (error) {
-      console.error('Error assigning weapon:', error);
-    }
+    await assignWeaponMutation.mutateAsync({
+      weaponId: selectedWeapon.id,
+      userId: selectedUserId
+    });
+    setShowAssignDialog(false);
+    setSelectedWeapon(null);
+    setSelectedUserId('');
   };
 
   const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
@@ -396,9 +310,9 @@ export default function AdminWeaponsPage() {
               variant="outline"
               size="icon"
               onClick={handleRefresh}
-              disabled={refreshing}
+              disabled={isLoading}
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -520,7 +434,7 @@ export default function AdminWeaponsPage() {
         </Card>
 
         <Card>
-          {loading ? (
+          {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Chargement...</div>
           ) : (
             <Table>
@@ -739,7 +653,9 @@ export default function AdminWeaponsPage() {
                 <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
                   Annuler
                 </Button>
-                <Button type="submit">Créer</Button>
+                <Button type="submit" disabled={createWeaponMutation.isPending}>
+                  {createWeaponMutation.isPending ? 'Création...' : 'Créer'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -849,7 +765,9 @@ export default function AdminWeaponsPage() {
                 <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
                   Annuler
                 </Button>
-                <Button type="submit">Enregistrer</Button>
+                <Button type="submit" disabled={updateWeaponMutation.isPending}>
+                  {updateWeaponMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -883,8 +801,11 @@ export default function AdminWeaponsPage() {
               <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleAssignWeapon} disabled={!selectedUserId}>
-                Assigner
+              <Button
+                onClick={handleAssignWeapon}
+                disabled={!selectedUserId || assignWeaponMutation.isPending}
+              >
+                {assignWeaponMutation.isPending ? 'Assignment...' : 'Assigner'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -904,8 +825,12 @@ export default function AdminWeaponsPage() {
               <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
                 Annuler
               </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                Supprimer
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteWeaponMutation.isPending}
+              >
+                {deleteWeaponMutation.isPending ? 'Suppression...' : 'Supprimer'}
               </Button>
             </DialogFooter>
           </DialogContent>

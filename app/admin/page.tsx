@@ -1,54 +1,27 @@
 'use client';
 
 import { useSession } from '@/lib/auth-client';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Users, Shield, Activity, ChevronRight, Grid3x3 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useUsers, useWeapons } from '@/lib/hooks/use-queries';
 
 export default function AdminPage() {
   const { data: session } = useSession();
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalWeapons: 0,
-    assignedWeapons: 0,
-    availableWeapons: 0,
-  });
 
-  useEffect(() => {
-    if ((session?.user as any)?.role === 'ADMIN') {
-      fetchStats();
+  // TanStack Query hooks avec auto-refresh
+  const { data: users = [] } = useUsers();
+  const { data: weapons = [] } = useWeapons();
 
-      // Auto-refresh every 10 seconds
-      const interval = setInterval(() => {
-        fetchStats();
-      }, 10000);
-
-      return () => clearInterval(interval);
-    }
-  }, [session]);
-
-  const fetchStats = async () => {
-    try {
-      const [usersRes, weaponsRes] = await Promise.all([
-        fetch('/api/users'),
-        fetch('/api/weapons'),
-      ]);
-
-      const users = await usersRes.json();
-      const weapons = await weaponsRes.json();
-
-      setStats({
-        totalUsers: users.length,
-        totalWeapons: weapons.length,
-        assignedWeapons: weapons.filter((w: any) => w.status === 'ASSIGNED').length,
-        availableWeapons: weapons.filter((w: any) => w.status === 'AVAILABLE').length,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+  // Calculer les stats à partir des données
+  const stats = useMemo(() => ({
+    totalUsers: users.length,
+    totalWeapons: weapons.length,
+    assignedWeapons: weapons.filter((w: any) => w.status === 'ASSIGNED').length,
+    availableWeapons: weapons.filter((w: any) => w.status === 'AVAILABLE').length,
+  }), [users, weapons]);
 
   if (!session?.user) {
     return (

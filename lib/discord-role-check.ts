@@ -6,7 +6,7 @@ export async function checkDiscordRole(
   accessToken: string,
   guildId: string,
   requiredRoleId: string
-): Promise<boolean> {
+): Promise<{ hasRole: boolean; tokenExpired: boolean }> {
   try {
     // Récupérer les serveurs de l'utilisateur avec ses rôles
     const response = await fetch(
@@ -18,9 +18,15 @@ export async function checkDiscordRole(
       }
     );
 
+    // Si le token est invalide/expiré (401), on retourne une indication spéciale
+    if (response.status === 401) {
+      console.warn('[Discord] Access token expired or invalid');
+      return { hasRole: false, tokenExpired: true };
+    }
+
     if (!response.ok) {
       console.error('[Discord] Failed to fetch guild member:', response.status, response.statusText);
-      return false;
+      return { hasRole: false, tokenExpired: false };
     }
 
     const member = await response.json();
@@ -35,10 +41,10 @@ export async function checkDiscordRole(
       guildId,
     });
 
-    return hasRole;
+    return { hasRole, tokenExpired: false };
   } catch (error) {
     console.error('[Discord] Error checking role:', error);
-    return false;
+    return { hasRole: false, tokenExpired: false };
   }
 }
 

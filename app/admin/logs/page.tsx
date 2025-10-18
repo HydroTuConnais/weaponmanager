@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from '@/lib/auth-client';
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Activity, Filter, X, Plus, Search, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { translateLogAction } from '@/lib/translations';
 import type { DateRange } from 'react-day-picker';
+import { useLogs } from '@/lib/hooks/use-queries';
 
 interface Log {
   id: string;
@@ -58,43 +59,16 @@ interface FilterType {
 
 export default function AdminLogsPage() {
   const { data: session } = useSession();
-  const [logs, setLogs] = useState<Log[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<Log[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // TanStack Query avec refetch automatique toutes les 10 secondes
+  const { data: logs = [], isLoading } = useLogs();
+
   const [filters, setFilters] = useState<FilterType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  useEffect(() => {
-    if ((session?.user as any)?.role === 'ADMIN') {
-      fetchLogs();
-
-      // Auto-refresh every 10 seconds
-      const interval = setInterval(() => {
-        fetchLogs();
-      }, 10000);
-
-      return () => clearInterval(interval);
-    }
-  }, [session]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [logs, filters, searchTerm]);
-
-  const fetchLogs = async () => {
-    try {
-      const response = await fetch('/api/logs');
-      const data = await response.json();
-      setLogs(data);
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
+  // Compute filtered logs using useMemo to avoid infinite loops
+  const filteredLogs = useMemo(() => {
     let filtered = [...logs];
 
     // Apply filters
@@ -129,8 +103,8 @@ export default function AdminLogsPage() {
       );
     }
 
-    setFilteredLogs(filtered);
-  };
+    return filtered;
+  }, [logs, filters, searchTerm]);
 
   const addFilter = (type: 'action' | 'user' | 'weapon' | 'dateRange', value: string, endDate?: string) => {
     setFilters([...filters, { id: Date.now().toString(), type, value, endDate }]);
@@ -404,7 +378,7 @@ export default function AdminLogsPage() {
 
         {/* Table */}
         <Card>
-          {loading ? (
+          {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Chargement...</div>
           ) : (
             <Table>

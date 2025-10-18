@@ -41,48 +41,31 @@ import {
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { translateWeaponStatus } from '@/lib/translations';
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  image?: string;
-  role: 'USER' | 'ADMIN';
-  weapons: any[];
-  createdAt: string;
-}
+import {
+  useUsers,
+  useUpdateUser,
+  useDeleteUser,
+  useReturnWeapon,
+  useUpdateWeapon,
+} from '@/lib/hooks/use-queries';
+import type { User } from '@/lib/types';
 
 export default function AdminUsersPage() {
   const { data: session } = useSession();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // TanStack Query hooks
+  const { data: users = [], isLoading, refetch } = useUsers();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+  const returnWeaponMutation = useReturnWeapon();
+  const updateWeaponMutation = useUpdateWeapon();
+
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<'USER' | 'ADMIN'>('USER');
   const [editName, setEditName] = useState('');
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/users');
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if ((session?.user as any)?.role === 'ADMIN') {
-      fetchUsers();
-    }
-  }, [session]);
-
-  // Real-time sync DÉSACTIVÉ pour économiser la base de données
-  // Utilisez le bouton de refresh manuel à la place
 
   const handleViewDetails = (user: User) => {
     setSelectedUser(user);
@@ -100,94 +83,61 @@ export default function AdminUsersPage() {
   const handleUpdateUser = async () => {
     if (!selectedUser) return;
 
-    try {
-      await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, role: newRole }),
-      });
-      setShowDetailsDialog(false);
-      setSelectedUser(null);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error updating user:', error);
-    }
+    await updateUserMutation.mutateAsync({
+      id: selectedUser.id,
+      data: { name: editName, role: newRole },
+    });
+    setShowDetailsDialog(false);
+    setSelectedUser(null);
   };
 
   const handleUnassignWeapon = async (weaponId: string) => {
-    try {
-      await fetch('/api/weapons/return', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weaponId, userId: session?.user.id }),
-      });
-      fetchUsers();
-      // Refresh selected user data
-      if (selectedUser) {
-        const response = await fetch('/api/users');
-        const data = await response.json();
-        const updatedUser = data.find((u: User) => u.id === selectedUser.id);
-        if (updatedUser) {
-          setSelectedUser(updatedUser);
-        }
+    await returnWeaponMutation.mutateAsync({
+      weaponId,
+      userId: session?.user.id || '',
+    });
+    // Refresh selected user data
+    if (selectedUser) {
+      await refetch();
+      const updatedUser = users.find((u: User) => u.id === selectedUser.id);
+      if (updatedUser) {
+        setSelectedUser(updatedUser);
       }
-    } catch (error) {
-      console.error('Error unassigning weapon:', error);
     }
   };
 
   const handleChangeWeaponStatus = async (weaponId: string, newStatus: string) => {
-    try {
-      await fetch(`/api/weapons/${weaponId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      fetchUsers();
-      // Refresh selected user data
-      if (selectedUser) {
-        const response = await fetch('/api/users');
-        const data = await response.json();
-        const updatedUser = data.find((u: User) => u.id === selectedUser.id);
-        if (updatedUser) {
-          setSelectedUser(updatedUser);
-        }
+    await updateWeaponMutation.mutateAsync({
+      id: weaponId,
+      data: { status: newStatus as any },
+    });
+    // Refresh selected user data
+    if (selectedUser) {
+      await refetch();
+      const updatedUser = users.find((u: User) => u.id === selectedUser.id);
+      if (updatedUser) {
+        setSelectedUser(updatedUser);
       }
-    } catch (error) {
-      console.error('Error changing weapon status:', error);
     }
   };
 
   const handleUpdateRole = async () => {
     if (!selectedUser) return;
 
-    try {
-      await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      });
-      setShowEditDialog(false);
-      setSelectedUser(null);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error updating user role:', error);
-    }
+    await updateUserMutation.mutateAsync({
+      id: selectedUser.id,
+      data: { role: newRole },
+    });
+    setShowEditDialog(false);
+    setSelectedUser(null);
   };
 
   const handleDelete = async () => {
     if (!selectedUser) return;
 
-    try {
-      await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'DELETE',
-      });
-      setShowDeleteDialog(false);
-      setSelectedUser(null);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-    }
+    await deleteUserMutation.mutateAsync(selectedUser.id);
+    setShowDeleteDialog(false);
+    setSelectedUser(null);
   };
 
   const getRoleVariant = (role: string) => {
@@ -239,7 +189,7 @@ export default function AdminUsersPage() {
         </div>
 
         <Card>
-          {loading ? (
+          {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Chargement...</div>
           ) : (
             <Table>
@@ -284,7 +234,7 @@ export default function AdminUsersPage() {
                       </TableCell>
                       <TableCell>
                         <span className="text-muted-foreground">
-                          {user.weapons.length} arme{user.weapons.length > 1 ? 's' : ''}
+                          {user.weapons?.length || 0} arme{(user.weapons?.length || 0) > 1 ? 's' : ''}
                         </span>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -374,10 +324,10 @@ export default function AdminUsersPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">Armes assignées</h3>
-                  <Badge variant="outline">{selectedUser?.weapons.length || 0} arme{(selectedUser?.weapons.length || 0) > 1 ? 's' : ''}</Badge>
+                  <Badge variant="outline">{selectedUser?.weapons?.length || 0} arme{(selectedUser?.weapons?.length || 0) > 1 ? 's' : ''}</Badge>
                 </div>
 
-                {(!selectedUser?.weapons || selectedUser.weapons.length === 0) ? (
+                {(!selectedUser?.weapons || selectedUser?.weapons?.length === 0) ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Aucune arme assignée
                   </div>

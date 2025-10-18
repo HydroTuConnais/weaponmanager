@@ -32,6 +32,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import {
+  useWeaponTypes,
+  useCreateWeaponType,
+  useUpdateWeaponType,
+  useDeleteWeaponType,
+} from '@/lib/hooks/use-queries';
 
 interface WeaponType {
   id: string;
@@ -42,9 +48,12 @@ interface WeaponType {
 
 export default function AdminWeaponTypesPage() {
   const { data: session } = useSession();
-  const [weaponTypes, setWeaponTypes] = useState<WeaponType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+
+  // TanStack Query hooks
+  const { data: weaponTypes = [], isLoading, refetch } = useWeaponTypes();
+  const createWeaponTypeMutation = useCreateWeaponType();
+  const updateWeaponTypeMutation = useUpdateWeaponType();
+  const deleteWeaponTypeMutation = useDeleteWeaponType();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -55,47 +64,18 @@ export default function AdminWeaponTypesPage() {
     category: '',
   });
 
-  const fetchWeaponTypes = async () => {
-    try {
-      const response = await fetch('/api/weapon-types');
-      const data = await response.json();
-      setWeaponTypes(data);
-    } catch (error) {
-      console.error('Error fetching weapon types:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if ((session?.user as any)?.role === 'ADMIN') {
-      fetchWeaponTypes();
-    }
-  }, [session]);
-
-  // Real-time sync DÉSACTIVÉ pour économiser la base de données
-  // Utilisez le bouton de refresh manuel à la place
-
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchWeaponTypes();
-    setRefreshing(false);
+    await refetch();
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await fetch('/api/weapon-types', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      setFormData({ name: '', image: '', category: '' });
-      setShowCreateDialog(false);
-      fetchWeaponTypes();
-    } catch (error) {
-      console.error('Error creating weapon type:', error);
-    }
+    await createWeaponTypeMutation.mutateAsync({
+      ...formData,
+      userId: session?.user?.id,
+    });
+    setFormData({ name: '', image: '', category: '' });
+    setShowCreateDialog(false);
   };
 
   const handleEdit = (weaponType: WeaponType) => {
@@ -112,39 +92,23 @@ export default function AdminWeaponTypesPage() {
     e.preventDefault();
     if (!selectedType) return;
 
-    try {
-      await fetch(`/api/weapon-types/${selectedType.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      setShowEditDialog(false);
-      setSelectedType(null);
-      fetchWeaponTypes();
-    } catch (error) {
-      console.error('Error updating weapon type:', error);
-    }
+    await updateWeaponTypeMutation.mutateAsync({
+      id: selectedType.id,
+      data: formData,
+    });
+    setShowEditDialog(false);
+    setSelectedType(null);
   };
 
   const handleDelete = async () => {
     if (!selectedType) return;
 
     try {
-      const response = await fetch(`/api/weapon-types/${selectedType.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        alert(error.error);
-        return;
-      }
-
+      await deleteWeaponTypeMutation.mutateAsync(selectedType.id);
       setShowDeleteDialog(false);
       setSelectedType(null);
-      fetchWeaponTypes();
-    } catch (error) {
-      console.error('Error deleting weapon type:', error);
+    } catch (error: any) {
+      alert(error.message || 'Error deleting weapon type');
     }
   };
 
@@ -169,9 +133,9 @@ export default function AdminWeaponTypesPage() {
               variant="outline"
               size="icon"
               onClick={handleRefresh}
-              disabled={refreshing}
+              disabled={isLoading}
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -181,7 +145,7 @@ export default function AdminWeaponTypesPage() {
         </div>
 
         <Card>
-          {loading ? (
+          {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Chargement...</div>
           ) : (
             <Table>

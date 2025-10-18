@@ -55,11 +55,14 @@ interface UsePusherOptions {
   onWeaponTypesChange?: () => void;
   onUsersChange?: () => void;
   enabled?: boolean;
+  isAuthenticated?: boolean;
 }
 
 /**
  * Hook pour écouter les événements Pusher en temps réel
  * Remplace le polling - 0 appel à la DB !
+ *
+ * IMPORTANT: Ne se connecte que si l'utilisateur est authentifié
  */
 export function usePusher(options: UsePusherOptions = {}) {
   const {
@@ -67,6 +70,7 @@ export function usePusher(options: UsePusherOptions = {}) {
     onWeaponTypesChange,
     onUsersChange,
     enabled = true,
+    isAuthenticated = false,
   } = options;
 
   const callbacksRef = useRef({ onWeaponsChange, onWeaponTypesChange, onUsersChange });
@@ -77,7 +81,13 @@ export function usePusher(options: UsePusherOptions = {}) {
   }, [onWeaponsChange, onWeaponTypesChange, onUsersChange]);
 
   useEffect(() => {
-    if (!enabled) return;
+    // Ne pas se connecter si l'utilisateur n'est pas authentifié
+    if (!enabled || !isAuthenticated) {
+      if (!isAuthenticated) {
+        console.log('[Pusher] ⏸️ Connexion désactivée - utilisateur non authentifié');
+      }
+      return;
+    }
 
     const pusher = getPusherClient();
     if (!pusher) {
@@ -171,5 +181,5 @@ export function usePusher(options: UsePusherOptions = {}) {
         pusher.unsubscribe(PUSHER_CHANNELS.USERS);
       }
     };
-  }, [enabled]);
+  }, [enabled, isAuthenticated]);
 }
