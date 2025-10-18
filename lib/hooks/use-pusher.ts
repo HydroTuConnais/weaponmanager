@@ -16,8 +16,34 @@ function getPusherClient() {
       return null;
     }
 
+    console.log('[Pusher Client] Initializing with cluster:', cluster);
     pusherClient = new Pusher(key, {
       cluster,
+    });
+
+    // Log des événements de connexion
+    pusherClient.connection.bind('connecting', () => {
+      console.log('[Pusher] 🔄 Connexion en cours...');
+    });
+
+    pusherClient.connection.bind('connected', () => {
+      console.log('[Pusher] ✅ Connecté avec succès! Socket ID:', pusherClient?.connection.socket_id);
+    });
+
+    pusherClient.connection.bind('unavailable', () => {
+      console.warn('[Pusher] ⚠️ Connexion non disponible');
+    });
+
+    pusherClient.connection.bind('failed', () => {
+      console.error('[Pusher] ❌ Connexion échouée');
+    });
+
+    pusherClient.connection.bind('disconnected', () => {
+      console.warn('[Pusher] ⚠️ Déconnecté');
+    });
+
+    pusherClient.connection.bind('error', (err: any) => {
+      console.error('[Pusher] ❌ Erreur de connexion:', err);
     });
   }
 
@@ -61,55 +87,74 @@ export function usePusher(options: UsePusherOptions = {}) {
 
     // S'abonner au canal des armes
     if (callbacksRef.current.onWeaponsChange) {
+      console.log('[Pusher] 📡 Souscription au canal:', PUSHER_CHANNELS.WEAPONS);
       const weaponsChannel = pusher.subscribe(PUSHER_CHANNELS.WEAPONS);
 
-      weaponsChannel.bind(PUSHER_EVENTS.WEAPON_CREATED, () => {
-        console.log('[Pusher] Weapon created, refreshing...');
+      weaponsChannel.bind('pusher:subscription_succeeded', () => {
+        console.log('[Pusher] ✅ Souscription réussie:', PUSHER_CHANNELS.WEAPONS);
+      });
+
+      weaponsChannel.bind('pusher:subscription_error', (err: any) => {
+        console.error('[Pusher] ❌ Erreur de souscription:', PUSHER_CHANNELS.WEAPONS, err);
+      });
+
+      weaponsChannel.bind(PUSHER_EVENTS.WEAPON_CREATED, (data: any) => {
+        console.log('[Pusher] 🔫 Weapon created:', data);
         callbacksRef.current.onWeaponsChange?.();
       });
 
-      weaponsChannel.bind(PUSHER_EVENTS.WEAPON_UPDATED, () => {
-        console.log('[Pusher] Weapon updated, refreshing...');
+      weaponsChannel.bind(PUSHER_EVENTS.WEAPON_UPDATED, (data: any) => {
+        console.log('[Pusher] 🔄 Weapon updated:', data);
         callbacksRef.current.onWeaponsChange?.();
       });
 
-      weaponsChannel.bind(PUSHER_EVENTS.WEAPON_DELETED, () => {
-        console.log('[Pusher] Weapon deleted, refreshing...');
+      weaponsChannel.bind(PUSHER_EVENTS.WEAPON_DELETED, (data: any) => {
+        console.log('[Pusher] 🗑️ Weapon deleted:', data);
         callbacksRef.current.onWeaponsChange?.();
       });
     }
 
     // S'abonner au canal des types d'armes
     if (callbacksRef.current.onWeaponTypesChange) {
+      console.log('[Pusher] 📡 Souscription au canal:', PUSHER_CHANNELS.WEAPON_TYPES);
       const weaponTypesChannel = pusher.subscribe(PUSHER_CHANNELS.WEAPON_TYPES);
 
-      weaponTypesChannel.bind(PUSHER_EVENTS.WEAPON_TYPE_CREATED, () => {
-        console.log('[Pusher] Weapon type created, refreshing...');
+      weaponTypesChannel.bind('pusher:subscription_succeeded', () => {
+        console.log('[Pusher] ✅ Souscription réussie:', PUSHER_CHANNELS.WEAPON_TYPES);
+      });
+
+      weaponTypesChannel.bind(PUSHER_EVENTS.WEAPON_TYPE_CREATED, (data: any) => {
+        console.log('[Pusher] 📦 Weapon type created:', data);
         callbacksRef.current.onWeaponTypesChange?.();
       });
 
-      weaponTypesChannel.bind(PUSHER_EVENTS.WEAPON_TYPE_UPDATED, () => {
-        console.log('[Pusher] Weapon type updated, refreshing...');
+      weaponTypesChannel.bind(PUSHER_EVENTS.WEAPON_TYPE_UPDATED, (data: any) => {
+        console.log('[Pusher] 🔄 Weapon type updated:', data);
         callbacksRef.current.onWeaponTypesChange?.();
       });
 
-      weaponTypesChannel.bind(PUSHER_EVENTS.WEAPON_TYPE_DELETED, () => {
-        console.log('[Pusher] Weapon type deleted, refreshing...');
+      weaponTypesChannel.bind(PUSHER_EVENTS.WEAPON_TYPE_DELETED, (data: any) => {
+        console.log('[Pusher] 🗑️ Weapon type deleted:', data);
         callbacksRef.current.onWeaponTypesChange?.();
       });
     }
 
     // S'abonner au canal des utilisateurs
     if (callbacksRef.current.onUsersChange) {
+      console.log('[Pusher] 📡 Souscription au canal:', PUSHER_CHANNELS.USERS);
       const usersChannel = pusher.subscribe(PUSHER_CHANNELS.USERS);
 
-      usersChannel.bind(PUSHER_EVENTS.USER_UPDATED, () => {
-        console.log('[Pusher] User updated, refreshing...');
+      usersChannel.bind('pusher:subscription_succeeded', () => {
+        console.log('[Pusher] ✅ Souscription réussie:', PUSHER_CHANNELS.USERS);
+      });
+
+      usersChannel.bind(PUSHER_EVENTS.USER_UPDATED, (data: any) => {
+        console.log('[Pusher] 👤 User updated:', data);
         callbacksRef.current.onUsersChange?.();
       });
 
-      usersChannel.bind(PUSHER_EVENTS.USER_DELETED, () => {
-        console.log('[Pusher] User deleted, refreshing...');
+      usersChannel.bind(PUSHER_EVENTS.USER_DELETED, (data: any) => {
+        console.log('[Pusher] 🗑️ User deleted:', data);
         callbacksRef.current.onUsersChange?.();
       });
     }
