@@ -64,6 +64,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Récupérer les infos du membre sur le serveur (nickname)
+    try {
+      const memberResponse = await fetch(
+        `https://discord.com/api/v10/users/@me/guilds/${guildId}/member`,
+        {
+          headers: {
+            Authorization: `Bearer ${account.accessToken}`,
+          },
+        }
+      );
+
+      if (memberResponse.ok) {
+        const memberData = await memberResponse.json();
+        // Le nickname du serveur (ou username si pas de nickname)
+        const serverNickname = memberData.nick || memberData.user?.username;
+
+        if (serverNickname) {
+          // Mettre à jour le nom de l'utilisateur avec le pseudonyme Discord du serveur
+          await prisma.user.update({
+            where: { id: userId },
+            data: { name: serverNickname },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Discord Role Check] Error fetching member info:', error);
+      // Continue même si on ne peut pas récupérer le nickname
+    }
+
     return NextResponse.json({ hasRole: true });
   } catch (error) {
     console.error('[Discord Role Check] Error:', error);
