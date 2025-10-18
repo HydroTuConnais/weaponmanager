@@ -84,12 +84,15 @@ export default function AdminWeaponsPage() {
   const [weapons, setWeapons] = useState<Weapon[]>([]);
   const [filteredWeapons, setFilteredWeapons] = useState<Weapon[]>([]);
   const [weaponTypes, setWeaponTypes] = useState<WeaponType[]>([]);
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [filters, setFilters] = useState<FilterType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
@@ -125,10 +128,21 @@ export default function AdminWeaponsPage() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   useEffect(() => {
     if ((session?.user as any)?.role === 'ADMIN') {
       fetchWeapons();
       fetchWeaponTypes();
+      fetchUsers();
     }
   }, [session]);
 
@@ -294,6 +308,18 @@ export default function AdminWeaponsPage() {
   };
 
   const handleStatusChange = async (weaponId: string, newStatus: Weapon['status']) => {
+    // Si on passe à ASSIGNED, ouvrir la popup de sélection d'utilisateur
+    if (newStatus === 'ASSIGNED') {
+      const weapon = weapons.find((w) => w.id === weaponId);
+      if (weapon) {
+        setSelectedWeapon(weapon);
+        setSelectedUserId('');
+        setShowAssignDialog(true);
+      }
+      return;
+    }
+
+    // Pour les autres statuts, mettre à jour directement
     try {
       await fetch(`/api/weapons/${weaponId}`, {
         method: 'PATCH',
@@ -303,6 +329,27 @@ export default function AdminWeaponsPage() {
       fetchWeapons();
     } catch (error) {
       console.error('Error updating weapon status:', error);
+    }
+  };
+
+  const handleAssignWeapon = async () => {
+    if (!selectedWeapon || !selectedUserId) return;
+
+    try {
+      await fetch('/api/weapons/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weaponId: selectedWeapon.id,
+          userId: selectedUserId
+        }),
+      });
+      setShowAssignDialog(false);
+      setSelectedWeapon(null);
+      setSelectedUserId('');
+      fetchWeapons();
+    } catch (error) {
+      console.error('Error assigning weapon:', error);
     }
   };
 
@@ -805,6 +852,41 @@ export default function AdminWeaponsPage() {
                 <Button type="submit">Enregistrer</Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Assign Dialog */}
+        <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assigner une arme</DialogTitle>
+              <DialogDescription>
+                Sélectionnez la personne à qui vous voulez assigner "{selectedWeapon?.name}"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="assignUser">Utilisateur</Label>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Sélectionner un utilisateur" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name || user.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleAssignWeapon} disabled={!selectedUserId}>
+                Assigner
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
