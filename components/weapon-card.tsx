@@ -88,6 +88,9 @@ export function WeaponCard({ weapon, isDraggable = false }: WeaponCardProps) {
                 <span className="font-medium">{weapon.weaponType.name}</span>
                 <span className="text-xs">• {weapon.ammunition ?? 0} balles</span>
               </p>
+              {weapon.description && (
+                <p className="text-xs line-clamp-1 italic">{weapon.description}</p>
+              )}
             </div>
           </div>
 
