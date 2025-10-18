@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface DataStatus {
   weapons: number;
@@ -23,14 +23,28 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
     onWeaponsChange,
     onWeaponTypesChange,
     onUsersChange,
-    pollingInterval = 15000, // 15 secondes par défaut (réduit de 3s pour économiser la DB)
+    pollingInterval = 15000, // 15 secondes par défaut
     enabled = true,
   } = options;
 
   const lastStatusRef = useRef<DataStatus | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const isCheckingRef = useRef(false); // Pour éviter les appels multiples
+  const isCheckingRef = useRef(false);
   const [isVisible, setIsVisible] = useState(true);
+
+  // Envelopper les callbacks dans useCallback pour éviter les recréations
+  const memoizedOnWeaponsChange = useCallback(
+    onWeaponsChange || (() => {}),
+    [onWeaponsChange]
+  );
+  const memoizedOnWeaponTypesChange = useCallback(
+    onWeaponTypesChange || (() => {}),
+    [onWeaponTypesChange]
+  );
+  const memoizedOnUsersChange = useCallback(
+    onUsersChange || (() => {}),
+    [onUsersChange]
+  );
 
   // Détecter si l'onglet est visible
   useEffect(() => {
@@ -50,7 +64,6 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
     const checkForUpdates = async () => {
       // Éviter les appels multiples simultanés
       if (isCheckingRef.current) {
-        console.log('[DataSync] Already checking, skipping...');
         return;
       }
 
@@ -67,40 +80,31 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
 
         const currentStatus: DataStatus = await response.json();
 
-        // Si c'est la première vérification, on stocke juste les timestamps
+        // Si c'est la première vérification, on stocke juste les données
         if (!lastStatusRef.current) {
           lastStatusRef.current = currentStatus;
           return;
         }
 
         // Vérifier si les weapons ont changé
-        if (
-          currentStatus.weapons !== lastStatusRef.current.weapons &&
-          onWeaponsChange
-        ) {
-          console.log('[DataSync] Weapons updated, refreshing...');
-          onWeaponsChange();
+        if (currentStatus.weapons !== lastStatusRef.current.weapons) {
+          console.log('[DataSync] Weapons updated');
+          memoizedOnWeaponsChange();
         }
 
         // Vérifier si les weaponTypes ont changé
-        if (
-          currentStatus.weaponTypes !== lastStatusRef.current.weaponTypes &&
-          onWeaponTypesChange
-        ) {
-          console.log('[DataSync] Weapon types updated, refreshing...');
-          onWeaponTypesChange();
+        if (currentStatus.weaponTypes !== lastStatusRef.current.weaponTypes) {
+          console.log('[DataSync] Weapon types updated');
+          memoizedOnWeaponTypesChange();
         }
 
         // Vérifier si les users ont changé
-        if (
-          currentStatus.users !== lastStatusRef.current.users &&
-          onUsersChange
-        ) {
-          console.log('[DataSync] Users updated, refreshing...');
-          onUsersChange();
+        if (currentStatus.users !== lastStatusRef.current.users) {
+          console.log('[DataSync] Users updated');
+          memoizedOnUsersChange();
         }
 
-        // Mettre à jour les derniers timestamps
+        // Mettre à jour les dernières données
         lastStatusRef.current = currentStatus;
       } catch (error) {
         console.error('[DataSync] Error checking for updates:', error);
@@ -123,9 +127,9 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
     enabled,
     pollingInterval,
     isVisible,
-    onWeaponsChange,
-    onWeaponTypesChange,
-    onUsersChange,
+    memoizedOnWeaponsChange,
+    memoizedOnWeaponTypesChange,
+    memoizedOnUsersChange,
   ]);
 
   return { isChecking };
