@@ -260,31 +260,6 @@ export default function AdminWeaponTypesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="image">Chemin de l'image (optionnel)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="image"
-                      placeholder="/weapons/ak47.jpg"
-                      value={formData.image}
-                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                      className="flex-1"
-                    />
-                    {formData.image && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setFormData({ ...formData, image: '' })}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Optionnel. Placez vos images dans public/weapons/
-                  </p>
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="category">Catégorie (optionnel)</Label>
                   <Input
                     id="category"
