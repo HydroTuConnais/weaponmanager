@@ -61,6 +61,12 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
   useEffect(() => {
     if (!enabled || !isVisible) return;
 
+    console.log('[DataSync] Effect triggered', {
+      enabled,
+      isVisible,
+      pollingInterval,
+    });
+
     const checkForUpdates = async () => {
       // Éviter les appels multiples simultanés
       if (isCheckingRef.current) {

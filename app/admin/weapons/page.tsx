@@ -4,7 +4,7 @@ import { useSession } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit, MoreVertical, Shield, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDataSync } from '@/lib/hooks/use-data-sync';
+import { usePusher } from '@/lib/hooks/use-pusher';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Image from 'next/image';
@@ -118,11 +118,10 @@ export default function AdminWeaponsPage() {
     }
   }, [session]);
 
-  // Real-time sync: refresh data when it changes
-  useDataSync({
+  // Pusher real-time updates - 0 polling, mise à jour instantanée !
+  usePusher({
     onWeaponsChange: fetchWeapons,
     onWeaponTypesChange: fetchWeaponTypes,
-    pollingInterval: 15000, // Check every 15 seconds (reduced from 3s to save DB operations)
     enabled: (session?.user as any)?.role === 'ADMIN',
   });
 

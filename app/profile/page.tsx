@@ -6,7 +6,7 @@ import { WeaponCard } from '@/components/weapon-card';
 import { DndContext, DragEndEvent, DragOverlay, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core';
 import { useEffect, useState } from 'react';
 import { User as UserIcon, RefreshCw } from 'lucide-react';
-import { useDataSync } from '@/lib/hooks/use-data-sync';
+import { usePusher } from '@/lib/hooks/use-pusher';
 import {
   Dialog,
   DialogContent,
@@ -44,10 +44,9 @@ export default function ProfilePage() {
     fetchWeapons();
   }, []);
 
-  // Real-time sync: refresh weapons when data changes
-  useDataSync({
+  // Pusher real-time updates - 0 polling, mise à jour instantanée !
+  usePusher({
     onWeaponsChange: fetchWeapons,
-    pollingInterval: 15000, // Check every 15 seconds (reduced from 3s to save DB operations)
   });
 
   useEffect(() => {

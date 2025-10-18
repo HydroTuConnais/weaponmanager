@@ -81,13 +81,8 @@ export default function AdminUsersPage() {
     }
   }, [session]);
 
-  // Real-time sync: refresh data when it changes
-  useDataSync({
-    onUsersChange: fetchUsers,
-    onWeaponsChange: fetchUsers, // Also refresh when weapons change (because users have weapons)
-    pollingInterval: 15000, // Check every 15 seconds (reduced from 3s to save DB operations)
-    enabled: (session?.user as any)?.role === 'ADMIN',
-  });
+  // Real-time sync DÉSACTIVÉ pour économiser la base de données
+  // Utilisez le bouton de refresh manuel à la place
 
   const handleViewDetails = (user: User) => {
     setSelectedUser(user);

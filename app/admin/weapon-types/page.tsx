@@ -73,12 +73,8 @@ export default function AdminWeaponTypesPage() {
     }
   }, [session]);
 
-  // Real-time sync: refresh data when it changes
-  useDataSync({
-    onWeaponTypesChange: fetchWeaponTypes,
-    pollingInterval: 15000, // Check every 15 seconds (reduced from 3s to save DB operations)
-    enabled: (session?.user as any)?.role === 'ADMIN',
-  });
+  // Real-time sync DÉSACTIVÉ pour économiser la base de données
+  // Utilisez le bouton de refresh manuel à la place
 
   const handleRefresh = async () => {
     setRefreshing(true);

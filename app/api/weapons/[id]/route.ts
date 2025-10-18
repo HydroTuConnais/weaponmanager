@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { triggerWeaponUpdate } from '@/lib/pusher-server';
 
 // PATCH /api/weapons/[id] - Update weapon
 export async function PATCH(
@@ -81,6 +82,9 @@ export async function PATCH(
       });
     }
 
+    // Trigger Pusher event pour mise à jour temps réel
+    await triggerWeaponUpdate('WEAPON_UPDATED', { id: weapon.id });
+
     return NextResponse.json(weapon);
   } catch (error) {
     console.error('Error updating weapon:', error);
@@ -125,6 +129,9 @@ export async function DELETE(
     await prisma.weapon.delete({
       where: { id: id },
     });
+
+    // Trigger Pusher event pour mise à jour temps réel
+    await triggerWeaponUpdate('WEAPON_DELETED', { id: weapon.id });
 
     return NextResponse.json({ success: true });
   } catch (error) {
