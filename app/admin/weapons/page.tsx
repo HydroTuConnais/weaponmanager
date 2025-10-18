@@ -84,7 +84,7 @@ export default function AdminWeaponsPage() {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [filters, setFilters] = useState<FilterType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortField, setSortField] = useState<SortField>('status');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [formData, setFormData] = useState({
     serialNumber: '',

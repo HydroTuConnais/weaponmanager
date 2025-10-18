@@ -25,7 +25,9 @@
       "Bash(node migrate-data.js:*)",
       "Bash(pnpm rebuild:*)",
       "Bash(node extract-sqlite-data.js:*)",
-      "Bash(where sqlite3)"
+      "Bash(where sqlite3)",
+      "Bash(pnpm install)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: update pnpm-lock.yaml for @tanstack/react-query dependency\n\n- Sync lockfile with package.json changes\n- Fixes Vercel build error: \"Cannot install with frozen-lockfile\"\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
