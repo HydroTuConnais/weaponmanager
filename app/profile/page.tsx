@@ -268,10 +268,10 @@ function DroppableZone({
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">{title}</h2>
+      <h2 className="text-lg font-bold mb-3">{title}</h2>
       <div
         ref={setNodeRef}
-        className={`min-h-[600px] border-4 border-dashed rounded-lg p-8 transition-all relative ${
+        className={`min-h-[400px] border-4 border-dashed rounded-lg p-4 transition-all relative ${
           id === 'my-weapons'
             ? isOver
               ? 'bg-blue-100 border-blue-500 scale-[1.02] shadow-lg'
@@ -281,14 +281,14 @@ function DroppableZone({
             : 'bg-green-50 border-green-300'
         }`}
       >
-        <div className={`space-y-4 transition-all ${showDropHint ? 'blur-sm' : ''}`}>
+        <div className={`space-y-2 transition-all ${showDropHint ? 'blur-sm' : ''}`}>
           {children}
         </div>
 
         {/* Overlay avec texte quand on drag */}
         {showDropHint && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-primary text-primary-foreground px-8 py-6 rounded-lg shadow-2xl text-2xl font-bold animate-pulse">
+            <div className="bg-primary text-primary-foreground px-6 py-4 rounded-lg shadow-2xl text-xl font-bold animate-pulse">
               Glissez ici
             </div>
           </div>

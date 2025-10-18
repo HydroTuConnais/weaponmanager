@@ -56,45 +56,44 @@ export function WeaponCard({ weapon, isDraggable = false }: WeaponCardProps) {
       className="transition-all hover:shadow-md relative"
     >
       {/* Badge du statut en haut à droite */}
-      <div className="absolute top-3 right-3 z-10">
-        <Badge variant={variant} className={className}>
+      <div className="absolute top-2 right-2 z-10">
+        <Badge variant={variant} className={`text-xs ${className}`}>
           {translateWeaponStatus(weapon.status)}
         </Badge>
       </div>
 
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
           {/* Image de l'arme */}
           {weapon.weaponType.image && (
-            <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-muted">
+            <div className="relative w-14 h-14 flex-shrink-0 rounded-md overflow-hidden bg-muted">
               <Image
                 src={weapon.weaponType.image}
                 alt={weapon.weaponType.name}
                 fill
                 className="object-cover"
-                sizes="80px"
+                sizes="56px"
               />
             </div>
           )}
 
-          <div className="flex-1 space-y-2 min-w-0 pr-20">
-            <div className="flex items-center gap-2">
-              <StatusIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <h3 className="font-medium truncate">{weapon.name}</h3>
+          <div className="flex-1 space-y-1 min-w-0 pr-16">
+            <div className="flex items-center gap-1.5">
+              <StatusIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              <h3 className="font-medium text-sm truncate">{weapon.name}</h3>
             </div>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p>Numéro de Série: {weapon.serialNumber}</p>
-              <p>Type: {weapon.weaponType.name}</p>
-              <p>Munitions: {weapon.ammunition ?? 0} balles</p>
-              {weapon.description && (
-                <p className="text-xs line-clamp-2">{weapon.description}</p>
-              )}
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              <p>S/N: {weapon.serialNumber}</p>
+              <p className="flex items-center gap-1">
+                <span className="font-medium">{weapon.weaponType.name}</span>
+                <span className="text-xs">• {weapon.ammunition ?? 0} balles</span>
+              </p>
             </div>
           </div>
 
           {isDraggable && (
-            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex-shrink-0 absolute bottom-3 right-3">
-              <GripVertical className="w-5 h-5 text-muted-foreground" />
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex-shrink-0 absolute bottom-2 right-2">
+              <GripVertical className="w-4 h-4 text-muted-foreground" />
             </div>
           )}
         </div>
