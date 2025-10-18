@@ -47,7 +47,7 @@ export default function ProfilePage() {
   // Real-time sync: refresh weapons when data changes
   useDataSync({
     onWeaponsChange: fetchWeapons,
-    pollingInterval: 3000, // Check every 3 seconds
+    pollingInterval: 15000, // Check every 15 seconds (reduced from 3s to save DB operations)
   });
 
   useEffect(() => {

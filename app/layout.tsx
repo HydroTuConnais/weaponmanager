@@ -4,8 +4,11 @@ import { Navbar } from "@/components/navbar";
 import { DiscordRoleGuard } from "@/components/discord-role-guard";
 
 export const metadata: Metadata = {
-  title: "Weapon Management System",
-  description: "System de gestion d'armes",
+  title: "Armurerie Harlem",
+  description: "Système de gestion d'armurerie",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

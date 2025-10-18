@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
   useDataSync({
     onUsersChange: fetchUsers,
     onWeaponsChange: fetchUsers, // Also refresh when weapons change (because users have weapons)
-    pollingInterval: 3000, // Check every 3 seconds
+    pollingInterval: 15000, // Check every 15 seconds (reduced from 3s to save DB operations)
     enabled: (session?.user as any)?.role === 'ADMIN',
   });
 

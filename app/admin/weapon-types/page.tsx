@@ -76,7 +76,7 @@ export default function AdminWeaponTypesPage() {
   // Real-time sync: refresh data when it changes
   useDataSync({
     onWeaponTypesChange: fetchWeaponTypes,
-    pollingInterval: 3000, // Check every 3 seconds
+    pollingInterval: 15000, // Check every 15 seconds (reduced from 3s to save DB operations)
     enabled: (session?.user as any)?.role === 'ADMIN',
   });
 

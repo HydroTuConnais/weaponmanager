@@ -23,26 +23,53 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
     onWeaponsChange,
     onWeaponTypesChange,
     onUsersChange,
-    pollingInterval = 3000, // 3 secondes par défaut
+    pollingInterval = 15000, // 15 secondes par défaut (réduit de 3s pour économiser la DB)
     enabled = true,
   } = options;
 
   const lastStatusRef = useRef<DataStatus | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const isCheckingRef = useRef(false); // Pour éviter les appels multiples
+  const [isVisible, setIsVisible] = useState(true);
+
+  // Détecter si l'onglet est visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(!document.hidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !isVisible) return;
 
     const checkForUpdates = async () => {
+      // Éviter les appels multiples simultanés
+      if (isCheckingRef.current) {
+        console.log('[DataSync] Already checking, skipping...');
+        return;
+      }
+
       try {
+        isCheckingRef.current = true;
         setIsChecking(true);
+
         const response = await fetch('/api/data-status');
+
+        if (!response.ok) {
+          console.error('[DataSync] Failed to fetch status:', response.status);
+          return;
+        }
+
         const currentStatus: DataStatus = await response.json();
 
         // Si c'est la première vérification, on stocke juste les timestamps
         if (!lastStatusRef.current) {
           lastStatusRef.current = currentStatus;
-          setIsChecking(false);
           return;
         }
 
@@ -79,6 +106,7 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
         console.error('[DataSync] Error checking for updates:', error);
       } finally {
         setIsChecking(false);
+        isCheckingRef.current = false;
       }
     };
 
@@ -94,6 +122,7 @@ export function useDataSync(options: UseDataSyncOptions = {}) {
   }, [
     enabled,
     pollingInterval,
+    isVisible,
     onWeaponsChange,
     onWeaponTypesChange,
     onUsersChange,
